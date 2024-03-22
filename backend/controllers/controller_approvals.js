@@ -7,20 +7,20 @@ export const createApproval = async (req, res) => {
 	const newApproval = new Approvals(approval);
 	try {
 		await newApproval.save();
-		res.status(200).json(newApproval);
+		return res.status(200).json(newApproval);
 	} catch (error) {
 		console.log("Error in createApproval: ", error.message);
-		res.status(409).json({ message: error.message });
+		return res.status(409).json({ message: error.message });
 	}
 };
 
 export const getApprovals = async (req, res) => {
 	try {
 		const approvals = await Approvals.find();
-		res.status(200).json(approvals);
+		return res.status(200).json(approvals);
 	} catch (error) {
 		console.log("Error in getApprovals: ", error.message);
-		res.status(404).json({ message: error.message });
+		return res.status(404).json({ message: error.message });
 	}
 };
 
@@ -50,6 +50,18 @@ export const updateStatus = async (req, res) => {
 					pullRequest.status = "Rejected";
 				}
 			}
+			if (pullRequest.approvers.length === 0) {
+				pullRequest.status = status;
+			}
+			await pullRequest.save();
+		}
+
+		if (pullRequest.parallel) {
+			if (status === "Approved") {
+				pullRequest.status = "Approved";
+			} else {
+				pullRequest.status = "Rejected";
+			}
 			await pullRequest.save();
 		}
 
@@ -58,9 +70,9 @@ export const updateStatus = async (req, res) => {
 			{ status },
 			{ new: true }
 		);
-		res.status(200).json(updatedApproval);
+		return res.status(200).json(updatedApproval);
 	} catch (error) {
 		console.log("Error in updateStatus: ", error.message);
-		res.status(404).json({ message: error.message });
+		return res.status(404).json({ message: error.message });
 	}
 };
