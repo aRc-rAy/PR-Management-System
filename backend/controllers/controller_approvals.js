@@ -79,21 +79,41 @@ export const updateStatus = async (req, res) => {
 			await pullRequest.save();
 		}
 
-		if (pullRequest.parallel) {
-			if (status === "Approved") {
-				pullRequest.status = "Approved";
-			} else {
+		if (pullRequest.prType === "Parallel") {
+			if (approval.status !== "Pending") {
+				return res.status(200).json({ message: "Already marked" });
+			}
+			approval.status = status;
+			await approval.save();
+
+			if (status === "Rejected") {
 				pullRequest.status = "Rejected";
+			}
+
+			if (pullRequest.status !== "Rejected") {
+				const myApprovals = await Approvals.find({
+					pullRequestId: pullRequest._id,
+				});
+
+				let AllAccepted = true;
+				for (let approval of myApprovals) {
+					if (approval.status != "Accepted") {
+						AllAccepted = false;
+					}
+				}
+
+				if (AllAccepted) {
+					pullRequest.status = "Accepted";
+				}
 			}
 			await pullRequest.save();
 		}
+		if (pullRequest.prType === "Hybrid") {
+		}
+		if (pullRequest.prType === "Sequential") {
+		}
 
-		const updatedApproval = await Approvals.findByIdAndUpdate(
-			id,
-			{ status },
-			{ new: true }
-		);
-		return res.status(200).json(updatedApproval);
+		return res.status(200).json(approval);
 	} catch (error) {
 		console.log("Error in updateStatus: ", error.message);
 		return res.status(404).json({ message: error.message });
