@@ -6,16 +6,15 @@ export const createPullRequest = async (req, res) => {
 	const pullRequest = req.body;
 	const approvers = pullRequest.approvers;
 	const requesterId = pullRequest.requesterId;
-	const parallel = pullRequest.parallel;
 
 	try {
-		// Check if all approvers exist
-		for (let email of approvers) {
-			const user = await Users.findOne({ email: email });
+		// to check if all approvers exists or not
+		for (let { approverId, level } of approvers) {
+			const user = await Users.findOne({ email: approverId });
 			if (!user) {
 				return res
 					.status(400)
-					.json({ message: `User with email ${email} does not exist` });
+					.json({ message: `User with email ${approverId} does not exist` });
 			}
 		}
 		// check if requester exists
@@ -26,30 +25,42 @@ export const createPullRequest = async (req, res) => {
 			});
 		}
 
-		// Create the PullRequest
 		const newPullRequest = new PullRequests({
 			...pullRequest,
 			requesterId: requester._id,
 		});
+
 		await newPullRequest.save();
+		console.log(`new pr->${newPullRequest}`);
 
 		// Create an Approval for each approver
-		if (parallel) {
-			for (let email of approvers) {
-				const user = await Users.findOne({ email: email });
+		if (newPullRequest.prType === "Parallel") {
+			for (let { approverId, level } of approvers) {
+				const user = await Users.findOne({ email: approverId });
 				const newApproval = new Approvals({
 					pullRequestId: newPullRequest._id,
 					approverId: user._id,
 				});
 				await newApproval.save();
 			}
-		} else {
-			const user = await Users.findOne({ email: approvers[0] });
+		} else if (newPullRequest.prType === "Sequential") {
+			const user = await Users.findOne({ email: approvers[0].approverId });
 			const newApproval = new Approvals({
 				pullRequestId: newPullRequest._id,
 				approverId: user._id,
 			});
 			await newApproval.save();
+		} else {
+			for (let { approverId, level } of approvers) {
+				if (level !== 1) continue;
+				const user = await Users.findOne({ email: approverId });
+				const newApproval = new Approvals({
+					pullRequestId: newPullRequest._id,
+					approverId: user._id,
+					level: level,
+				});
+				await newApproval.save();
+			}
 		}
 
 		return res.status(200).json(newPullRequest);

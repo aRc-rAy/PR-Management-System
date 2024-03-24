@@ -17,6 +17,10 @@ const approvalSchema = mongoose.Schema(
 			enum: ["Pending", "Approved", "Rejected"],
 			default: "Pending",
 		},
+		level: {
+			type: Number,
+			default: 1,
+		},
 	},
 	{ timestamps: true }
 );
