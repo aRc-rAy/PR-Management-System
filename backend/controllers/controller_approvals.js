@@ -56,29 +56,6 @@ export const updateStatus = async (req, res) => {
 
 		const pullRequest = await PullRequests.findById(pullRequestId);
 
-		if (!pullRequest.parallel && pullRequest.approvers.length > 0) {
-			pullRequest.approvers.shift();
-			if (pullRequest.approvers.length > 0) {
-				if (status === "Approved") {
-					const nextApprover = await Users.findOne({
-						email: pullRequest.approvers[0],
-					});
-					const newApproval = new Approvals({
-						pullRequestId: pullRequestId,
-						approverId: nextApprover._id,
-					});
-					await newApproval.save();
-				} else {
-					pullRequest.approvers = [];
-					pullRequest.status = "Rejected";
-				}
-			}
-			if (pullRequest.approvers.length === 0) {
-				pullRequest.status = status;
-			}
-			await pullRequest.save();
-		}
-
 		// Set approval status
 		if (approval.status !== "Pending") {
 			return res.status(200).json({ message: "Already marked" });
@@ -110,7 +87,29 @@ export const updateStatus = async (req, res) => {
 			await pullRequest.save();
 		}
 		if (pullRequest.prType === "Hybrid") {
-			
+			if (status === "Approved") {
+				if (approval.level === pullRequest.currentLevel) {
+					pullRequest.currentLevel += 1;
+					if (pullRequest.currentLevel > pullRequest.totalLevel) {
+						pullRequest.status = "Accepted";
+						pullRequest.save();
+						return res.status(200).json({ message: "PR Accepted" });
+					}
+
+					for (let approver in pullRequest.approvers) {
+						if (approver.level != pullRequest.level) continue;
+
+						const user = Users.find({ email: approver.approverId });
+						const newApproval = new Approvals({
+							pullRequestId: pullRequest._id,
+							approverId: user._id,
+							level: approver.level,
+						});
+						await newApproval.save();
+					}
+				}
+			}
+			return res.status(200).json({ message: "Updated status and approvals" });
 		}
 		if (pullRequest.prType === "Sequential") {
 			if (status === "Accepted") {
