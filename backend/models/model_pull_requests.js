@@ -14,13 +14,29 @@ const pullRequestSchema = mongoose.Schema(
 			required: true,
 			ref: "User",
 		},
-		approvers: {
-			type: Array,
-			default: [],
+		approvers: [
+			{
+				approverId: {
+					type: String,
+					required: true,
+				},
+				level: {
+					type: Number,
+					default: 1,
+				},
+			},
+		],
+		currentLevel: {
+			type: Number,
+			default: 1,
 		},
-		parallel: {
-			type: Boolean,
-			default: false,
+		totalLevel: {
+			type: Number,
+			default: 1,
+		},
+		prType: {
+			type: String,
+			enum: ["Parallel", "Sequential", "Hybrid"],
 		},
 		comments: {
 			type: Array,
