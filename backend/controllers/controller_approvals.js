@@ -79,13 +79,14 @@ export const updateStatus = async (req, res) => {
 			await pullRequest.save();
 		}
 
-		if (pullRequest.prType === "Parallel") {
-			if (approval.status !== "Pending") {
-				return res.status(200).json({ message: "Already marked" });
-			}
-			approval.status = status;
-			await approval.save();
+		// Set approval status
+		if (approval.status !== "Pending") {
+			return res.status(200).json({ message: "Already marked" });
+		}
+		approval.status = status;
+		await approval.save();
 
+		if (pullRequest.prType === "Parallel") {
 			if (status === "Rejected") {
 				pullRequest.status = "Rejected";
 			}
@@ -109,8 +110,35 @@ export const updateStatus = async (req, res) => {
 			await pullRequest.save();
 		}
 		if (pullRequest.prType === "Hybrid") {
+			
 		}
 		if (pullRequest.prType === "Sequential") {
+			if (status === "Accepted") {
+				for (let i = 0; i <= pullRequest.approvers.length; i++) {
+					if (i === pullRequest.approvers.length) {
+						pullRequest.status = "Accepted";
+						await pullRequest.save();
+						return res.status(200).json(approval);
+					}
+					const user = await Users.find({
+						email: pullRequest.approvers[i].approverId,
+					});
+
+					const myApproval = await Approvals.findById({ approverId: user._id });
+
+					if (!myApproval) {
+						const newApproval = new Approvals({
+							pullRequestId: pullRequest._id,
+							approverId: user._id,
+						});
+						await newApproval.save();
+						return res.status(200).json(newApproval);
+					}
+				}
+			} else {
+				pullRequest.status = "Rejected";
+			}
+			await pullRequest.save();
 		}
 
 		return res.status(200).json(approval);
