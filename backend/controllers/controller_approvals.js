@@ -16,7 +16,30 @@ export const createApproval = async (req, res) => {
 
 export const getApprovals = async (req, res) => {
 	try {
-		const approvals = await Approvals.find();
+		const approvals = await Approvals.find()
+			.populate({
+				path: "approverId",
+				select: "username email _id",
+			})
+			.populate("pullRequestId")
+			.lean()
+			.then((allApprovals) => {
+				allApprovals.forEach((app) => {
+					app.approver = app.approverId;
+					delete app.approverId;
+				});
+
+				return allApprovals;
+			})
+			.then((allApprovals) => {
+				allApprovals.forEach((app) => {
+					app.pullRequest = app.pullRequestId;
+					delete app.pullRequestId;
+				});
+
+				return allApprovals;
+			});
+
 		return res.status(200).json(approvals);
 	} catch (error) {
 		console.log("Error in getApprovals: ", error.message);
