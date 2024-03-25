@@ -1,58 +1,111 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as api from "../../api/index";
 import { useNavigate } from "react-router-dom";
 import "./createPR.css";
 
 const CreatePr = () => {
-	const navigate = useNavigate();
+	const options = [
+		{ value: "Parallel", label: "Parallel" },
+		{ value: "Sequential", label: "Sequential" },
+		{ value: "Hybrid", label: "Hybrid" },
+	];
 
+	const navigate = useNavigate();
+	const [requesterId, setrequesterId] = useState("");
+	const [user, setuser] = useState(null);
+	const [selectedValue, setSelectedValue] = useState("Parallel");
+	const [approvers, setApprovers] = useState([[""]]);
 	const [pullRequest, setPullRequest] = useState({
 		title: "",
 		description: "",
 		requesterId: "",
 		approvers: [],
 		status: "Open",
-		parallel: false,
 	});
-	const [approvers, setApprovers] = useState([""]);
+
+	useEffect(() => {
+		const user = JSON.parse(localStorage.getItem("profile"));
+		if (!user) {
+			navigate("/signup");
+		}
+		setuser(user);
+		setrequesterId(user?.result?._id);
+	}, []);
+
+	const handleRadio = (event) => {
+		setApprovers([[""]]);
+		setSelectedValue(event.target.value);
+	};
 
 	const handleChange = (e) => {
 		setPullRequest({ ...pullRequest, [e.target.name]: e.target.value });
 	};
 
-	const handleApproverChange = (e, index) => {
-		const newApprovers = [...approvers];
-		newApprovers[index] = e.target.value;
-		setApprovers(newApprovers);
-		setPullRequest({ ...pullRequest, approvers: newApprovers });
+	const handleHybridChange = (e, index, arrIndex) => {
+		setApprovers((prevApprovers) => {
+			const updatedApprovers = [...prevApprovers];
+			updatedApprovers[arrIndex][index] = e.target.value;
+			return updatedApprovers;
+		});
 	};
 
-	const handleAddApprover = () => {
-		setApprovers([...approvers, ""]);
-		setPullRequest({ ...pullRequest, approvers: [...approvers, ""] });
+	const handleAddHybridApprover = (arrIndex) => {
+		setApprovers((prevApprovers) => {
+			const updatedApprovers = [...prevApprovers];
+			const oldApprover = [...updatedApprovers[arrIndex]];
+			oldApprover.push("");
+			updatedApprovers[arrIndex] = oldApprover;
+			return updatedApprovers;
+		});
 	};
 
-	const handleRemoveApprover = (index) => {
-		const newApprovers = [...approvers];
-		newApprovers.splice(index, 1);
-		setApprovers(newApprovers);
-		setPullRequest({ ...pullRequest, approvers: newApprovers });
+	const handleRemoveHybridApprover = (index, arrIndex) => {
+		if (approvers.length > 1 || approvers[arrIndex].length > 1) {
+			setApprovers((prevApprovers) => {
+				const updatedApprovers = [...prevApprovers];
+				const oldApprover = [...updatedApprovers[arrIndex]];
+				if (oldApprover.length > 1) {
+					oldApprover.splice(index, 1);
+					updatedApprovers[arrIndex] = oldApprover;
+				} else {
+					updatedApprovers.splice(arrIndex, 1);
+				}
+				return updatedApprovers;
+			});
+		}
 	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 
 		try {
+			pullRequest.requesterId = user?.result?.email;
+			pullRequest.prType = selectedValue;
+			pullRequest.approvers = [];
+			approvers.forEach((approver, arrIndex) => {
+				approver.forEach((app, index) => {
+					pullRequest.approvers.push({ approverId: app, level: arrIndex + 1 });
+				});
+			});
+			// console.log(pullRequest);
 			const response = await api.postPullRequest(pullRequest);
 
 			if (!response) {
 				throw new Error("HTTP error " + response.status);
 			}
+			console.log(response);
 			alert("Pull request submitted successfully");
 			navigate("/");
 		} catch (error) {
 			console.error("Error:", error);
 		}
+	};
+
+	const handleLevel = async (e) => {
+		setApprovers((prevApprovers) => {
+			const updatedApprovers = [...prevApprovers, [""]];
+			return updatedApprovers;
+		});
 	};
 
 	return (
@@ -67,57 +120,104 @@ const CreatePr = () => {
 				<textarea name="description" onChange={handleChange} />
 			</label>
 			<hr />
-			<label>
-				Parallel
-				<input
-					type="checkbox"
-					name="parallel"
-					checked={pullRequest.parallel}
-					onChange={(e) =>
-						setPullRequest({ ...pullRequest, parallel: e.target.checked })
-					}
-				/>
+
+			<label style={{ fontWeight: "bolder", color: "#6c757d" }}>
+				Requester : {user?.result?.email}
 			</label>
 			<hr />
 			<label>
-				Requester Mail:
-				<input type="text" name="requesterId" onChange={handleChange} />
+				PR type:
+				<br />
+				<div style={{ display: "inline", justifyContent: "space-around" }}>
+					{options.map((option) => (
+						<label
+							key={option.value}
+							style={{ display: "inline-block", margin: "13px" }}
+						>
+							{option.label}{" "}
+							<input
+								style={{ display: "inline" }}
+								type="radio"
+								value={option.value}
+								checked={selectedValue === option.value}
+								onChange={handleRadio}
+							/>
+						</label>
+					))}
+				</div>
 			</label>
 			<hr />
-			{approvers.map((approver, index) => (
-				<div key={index}>
-					<label>
-						Approver {index + 1}: Email
-						<input
-							type="text"
-							name="approvers"
-							value={approver}
-							onChange={(e) => handleApproverChange(e, index)}
-						/>
-					</label>
-					<button
-						type="button"
-						onClick={() => handleRemoveApprover(index)}
-						style={{ marginTop: "5px" }}
-					>
-						Remove
-					</button>
+			{selectedValue === "Hybrid" && (
+				<h1 key="hybrid" style={{ color: "Red" }}>
+					Hybrid
+				</h1>
+			)}
+			{approvers.map((subApprovers, arrIndex) => (
+				<div key={arrIndex}>
+					{selectedValue === "Hybrid" && (
+						<h2
+							style={{
+								marginTop: "20px",
+								color: "blue",
+							}}
+						>
+							Level : {arrIndex + 1}
+						</h2>
+					)}
+					{subApprovers?.map((approve, index) => (
+						<>
+							<div key={index} style={{ marginBottom: "20px" }}>
+								<label>
+									Approver {index + 1}'s Email :
+									<input
+										type="text"
+										name={`approvers[${arrIndex}][${index}]`}
+										value={approve}
+										onChange={(e) => handleHybridChange(e, index, arrIndex)}
+									/>
+								</label>
+								<button
+									type="button"
+									onClick={() => handleRemoveHybridApprover(index, arrIndex)}
+									style={{ marginTop: "5px" }}
+									className="delete-button"
+								>
+									Remove
+								</button>
+							</div>
+							{index === subApprovers.length - 1 && (
+								<button
+									type="button"
+									onClick={() => handleAddHybridApprover(arrIndex)}
+									style={{ marginTop: "5px" }}
+									className="edit-button"
+								>
+									Add Approver
+								</button>
+							)}
+						</>
+					))}
 				</div>
 			))}
-			<button
-				type="button"
-				onClick={handleAddApprover}
-				style={{ marginTop: "5px" }}
-			>
-				Add Approver
-			</button>
+
 			<hr />
+			{selectedValue === "Hybrid" && (
+				<button
+					type="button"
+					onClick={handleLevel}
+					style={{ marginTop: "5px" }}
+					className="add-level-button"
+				>
+					Add Level
+				</button>
+			)}
+
+			<hr />
+
 			<label>
 				Status:
 				<select name="status" onChange={handleChange}>
 					<option value="Open">Open</option>
-					<option value="Approved">Approved</option>
-					<option value="Rejected">Rejected</option>
 				</select>
 			</label>
 			<hr />
