@@ -25,13 +25,18 @@ export const createPullRequest = async (req, res) => {
 			});
 		}
 
+		let totalLevel = 1;
+		pullRequest?.approvers.map((approver) => {
+			totalLevel = Math.max(totalLevel, approver.level);
+		});
+
 		const newPullRequest = new PullRequests({
 			...pullRequest,
 			requesterId: requester._id,
+			totalLevel: totalLevel,
 		});
 
 		await newPullRequest.save();
-		console.log(`new pr->${newPullRequest}`);
 
 		// Create an Approval for each approver
 		if (newPullRequest.prType === "Parallel") {
