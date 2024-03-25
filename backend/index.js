@@ -28,12 +28,6 @@ const directoryPath = path.dirname(fullPath);
 
 if (process.env.NODE_ENV === "production") {
 	app.use(express.static(path.join(directoryPath, "/frontend/build")));
-
-	app.get("*", (req, res) => {
-		res.sendFile(
-			path.resolve(directoryPath, "frontend", "build", "index.html")
-		);
-	});
 } else {
 	app.get("/", (req, res) => {
 		res.status(200).send("API runnning successfully....");
