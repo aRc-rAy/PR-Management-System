@@ -51,14 +51,23 @@ const Pr = () => {
 		<div className="pr-body">
 			{pr ? (
 				<>
-					<h2 className="pr-id">PR id: {pr._id}</h2>
-					<p className="pr-desc">PR description: {pr.description}</p>
+					<h2 className="pr-title">PR id: {pr?.title}</h2>
+					<p className="pr-desc">
+						{" "}
+						<span style={{ fontWeight: "bolder", color: "black" }}>
+							{" "}
+							PR description:
+						</span>{" "}
+						{pr?.description}
+					</p>
 
 					<p className="pr-status">PR status: {pr.status}</p>
 
 					<h2>Approvers :</h2>
-					{pr?.approvers?.map((approver) => (
-						<p key={approver}>{approver}</p>
+					{pr?.approvers?.map((approver, index) => (
+						<p key={approver}>
+							{index + 1}. {approver.approverId}
+						</p>
 					))}
 
 					<h2>Comments</h2>
