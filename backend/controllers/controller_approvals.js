@@ -57,9 +57,9 @@ export const updateStatus = async (req, res) => {
 		const pullRequest = await PullRequests.findById(pullRequestId);
 
 		// Set approval status
-		if (approval.status !== "Pending") {
-			return res.status(200).json({ message: "Already marked" });
-		}
+		// if (approval.status !== "Pending") {
+		// 	return res.status(200).json({ message: "Already marked" });
+		// }
 		approval.status = status;
 		await approval.save();
 
@@ -114,22 +114,26 @@ export const updateStatus = async (req, res) => {
 		}
 		if (pullRequest.prType === "Sequential") {
 			if (status === "Approved") {
+				pullRequest.approvers.map(async (approver, i) => {});
 				for (let i = 0; i <= pullRequest.approvers.length; i++) {
 					if (i === pullRequest.approvers.length) {
 						pullRequest.status = "Approved";
 						await pullRequest.save();
-						return res.status(200).json(approval);
+						return res.status(200).json({ message: "PR approved" });
 					}
 					const user = await Users.find({
 						email: pullRequest.approvers[i].approverId,
 					});
 
-					const myApproval = await Approvals.findById({ approverId: user._id });
+					const myApproval = await Approvals.find({
+						approverId: user[0]?._id,
+						pullRequestId: pullRequest._id,
+					});
 
-					if (!myApproval) {
+					if (myApproval.length == 0) {
 						const newApproval = new Approvals({
 							pullRequestId: pullRequest._id,
-							approverId: user._id,
+							approverId: user[0]?._id,
 						});
 						await newApproval.save();
 						return res.status(200).json(newApproval);
@@ -143,6 +147,7 @@ export const updateStatus = async (req, res) => {
 
 		return res.status(200).json(approval);
 	} catch (error) {
+		console.log(error);
 		console.log("Error in updateStatus: ", error.message);
 		return res.status(404).json({ message: error.message });
 	}
