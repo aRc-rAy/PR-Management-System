@@ -72,16 +72,17 @@ export const updateStatus = async (req, res) => {
 				const myApprovals = await Approvals.find({
 					pullRequestId: pullRequest._id,
 				});
-
+				console.log(myApprovals);
 				let AllAccepted = true;
 				for (let approval of myApprovals) {
-					if (approval.status != "Accepted") {
+					if (approval.status !== "Approved") {
+						console.log(`false approval-> ${approval}`);
 						AllAccepted = false;
 					}
 				}
-
+				console.log(`All accepted ${AllAccepted}`);
 				if (AllAccepted) {
-					pullRequest.status = "Accepted";
+					pullRequest.status = "Approved";
 				}
 			}
 			await pullRequest.save();
@@ -91,9 +92,9 @@ export const updateStatus = async (req, res) => {
 				if (approval.level === pullRequest.currentLevel) {
 					pullRequest.currentLevel += 1;
 					if (pullRequest.currentLevel > pullRequest.totalLevel) {
-						pullRequest.status = "Accepted";
+						pullRequest.status = "Approved";
 						pullRequest.save();
-						return res.status(200).json({ message: "PR Accepted" });
+						return res.status(200).json({ message: "PR Approved" });
 					}
 
 					for (let approver in pullRequest.approvers) {
@@ -112,10 +113,10 @@ export const updateStatus = async (req, res) => {
 			return res.status(200).json({ message: "Updated status and approvals" });
 		}
 		if (pullRequest.prType === "Sequential") {
-			if (status === "Accepted") {
+			if (status === "Approved") {
 				for (let i = 0; i <= pullRequest.approvers.length; i++) {
 					if (i === pullRequest.approvers.length) {
-						pullRequest.status = "Accepted";
+						pullRequest.status = "Approved";
 						await pullRequest.save();
 						return res.status(200).json(approval);
 					}
