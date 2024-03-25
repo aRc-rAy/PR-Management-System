@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API = axios.create({ baseURL: "http://localhost:5001" });
+const API = axios.create({
+	baseURL: "https://pr-management-system.onrender.com/",
+});
 
 export const postPullRequest = (newPullRequest) =>
 	API.post("/pull-requests/", newPullRequest);
