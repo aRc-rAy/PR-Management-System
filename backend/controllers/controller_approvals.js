@@ -57,9 +57,9 @@ export const updateStatus = async (req, res) => {
 		const pullRequest = await PullRequests.findById(pullRequestId);
 
 		// Set approval status
-		// if (approval.status !== "Pending") {
-		// 	return res.status(200).json({ message: "Already marked" });
-		// }
+		if (approval.status !== "Pending") {
+			return res.status(200).json({ message: "Already marked" });
+		}
 		approval.status = status;
 		await approval.save();
 
@@ -91,21 +91,24 @@ export const updateStatus = async (req, res) => {
 			if (status === "Approved") {
 				if (approval.level === pullRequest.currentLevel) {
 					pullRequest.currentLevel += 1;
+					await pullRequest.save();
+
 					if (pullRequest.currentLevel > pullRequest.totalLevel) {
 						pullRequest.status = "Approved";
-						pullRequest.save();
+						await pullRequest.save();
 						return res.status(200).json({ message: "PR Approved" });
 					}
 
-					for (let approver in pullRequest.approvers) {
-						if (approver.level != pullRequest.level) continue;
+					for (let { approverId, level } of pullRequest?.approvers) {
+						if (level !== pullRequest.currentLevel) continue;
 
-						const user = Users.find({ email: approver.approverId });
+						const user = await Users.find({ email: approverId });
 						const newApproval = new Approvals({
-							pullRequestId: pullRequest._id,
-							approverId: user._id,
-							level: approver.level,
+							pullRequestId: pullRequest?._id,
+							approverId: user[0]?._id,
+							level: pullRequest?.currentLevel,
 						});
+
 						await newApproval.save();
 					}
 				}
