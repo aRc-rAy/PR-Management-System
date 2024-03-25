@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import * as dotenv from "dotenv";
 import cors from "cors";
+import path from "path";
 
 dotenv.config();
 // ------------------> Routes <------------------//
@@ -20,6 +21,25 @@ app.use("/pull-requests", pullRequestRoutes);
 app.use("/pull-requests/comments/", commentRoutes);
 app.use("/pull-requests/approvals/", approvalRoutes);
 app.use("/pull-requests/users/", userRoutes);
+
+// ===============================Deployment Start=============================================
+const fullPath = path.resolve();
+const directoryPath = path.dirname(fullPath);
+
+if (process.env.NODE_ENV === "production") {
+	app.use(express.static(path.join(directoryPath, "/frontend/build")));
+
+	app.get("*", (req, res) => {
+		res.sendFile(
+			path.resolve(directoryPath, "frontend", "build", "index.html")
+		);
+	});
+} else {
+	app.get("/", (req, res) => {
+		res.status(200).send("API runnning successfully....");
+	});
+}
+// ===============================Deployment End===============================================
 
 const CONNECTION_URL = `mongodb+srv://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@cluster0.xpnnypl.mongodb.net/?retryWrites=true&w=majority`;
 
