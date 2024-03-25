@@ -33,6 +33,7 @@ const Login = () => {
 					<label>
 						Password:
 						<input
+							style={{ width: "100%" }}
 							type="password"
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}

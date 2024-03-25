@@ -52,6 +52,7 @@ const Pr = () => {
 			{pr ? (
 				<>
 					<h2 className="pr-title">PR id: {pr?.title}</h2>
+					<h2 className="pr-title">PR type: {pr?.prType}</h2>
 					<p className="pr-desc">
 						{" "}
 						<span style={{ fontWeight: "bolder", color: "black" }}>
