@@ -23,15 +23,17 @@ app.use("/pull-requests/approvals/", approvalRoutes);
 app.use("/pull-requests/users/", userRoutes);
 
 // ===============================Deployment Start=============================================
-const fullPath = path.resolve();
-const directoryPath = path.dirname(fullPath);
+const dirname1 = path.resolve();
+const pathArray = dirname1.split("\\");
+pathArray.pop();
+const newDirName = path.join(...pathArray);
 
 if (process.env.NODE_ENV === "production") {
-	app.use(express.static(path.join(directoryPath, "/frontend/build")));
+	app.use(express.static(path.join(newDirName, "frontend","build")));
 
 	app.get("/", (req, res) => {
 		res.sendFile(
-			path.resolve(directoryPath, "frontend", "build", "index.html")
+			path.resolve(newDirName, "frontend", "build", "index.html")
 		);
 	});
 } else {
